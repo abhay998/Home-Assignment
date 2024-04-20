@@ -1,120 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import MenuItem from "@mui/material/MenuItem";
+import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import OutlinedInput from "@mui/material/OutlinedInput";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import { CircularProgress, InputLabel } from "@mui/material";
 import ChartComponent from "./component/ChartComponent";
-import Highcharts, { Options } from "highcharts";
-import ListItemText from "@mui/material/ListItemText";
-import Checkbox from "@mui/material/Checkbox";
-import styled from "styled-components";
-
-// Define TypeScript interfaces
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-}
-
-interface ProductResponse {
-  products: Product[];
-  total: number;
-}
+import { ProductResponse } from "./interfaces/ProductResponse";
+import { fetchProductsByCategory } from "./services/ProductService";
+import {
+  AppContainer,
+  FiltersContainer,
+  Sidebar,
+  FilterWrapper,
+  ButtonContainer,
+  Content,
+  TitleBar,
+  ClearButton,
+  Button,
+  ChartContainer,
+} from "./App.styles";
+import { Checkbox, ListItemText } from "@mui/material";
 
 interface AppProps {}
 
-// Styled components with TypeScript typings
-const AppContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-`;
-
-const FiltersContainer = styled.div`
-  display: flex;
-  flex: 1;
-  padding: 20px;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    padding: 10px;
-  }
-`;
-
-const Sidebar = styled.div`
-  width: 20%;
-  padding-right: 20px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    padding-right: 0;
-    margin-bottom: 20px;
-  }
-`;
-
-const FilterWrapper = styled.div`
-  border: 1px solid black;
-  padding: 20px;
-  height: 90%; /* Ensure Sidebar takes full height */
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between; /* Space evenly between children */
-
-  @media (max-width: 768px) {
-    height: auto;
-  }
-`;
-
-const ButtonContainer = styled.div`
-  margin-top: 20px;
-`;
-
-const Content = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: center; /* Center content horizontally */
-  align-items: center; /* Center content vertically */
-
-  @media (max-width: 768px) {
-    padding: 20px; /* Optional: Add padding on smaller screens */
-  }
-`;
-
-const TitleBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const ClearButton = styled.button`
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-`;
-
-const Button = styled.button<{ enabled: boolean }>`
-  background-color: ${({ enabled }) => (enabled ? "#316bf4" : "grey")};
-  width: 100%;
-  height: 50px;
-  color: white;
-  font-weight: bold;
-  border-radius: 5px;
-  cursor: ${({ enabled }) => (enabled ? "pointer" : "not-allowed")};
-  border: none; /* Remove the border */
-  outline: none; /* Remove default focus outline */
-`;
-
-const ChartContainer = styled.div`
-  width: 100%;
-  height: 400px;
-`;
-
-// React component
 const App: React.FC<AppProps> = () => {
   const theme = useTheme();
   const [categories, setCategories] = useState<string[]>([]);
@@ -131,8 +41,7 @@ const App: React.FC<AppProps> = () => {
   };
 
   const handleProductChange = (event: SelectChangeEvent<string[]>) => {
-    const values = event.target.value as string[];
-    setSelectedProducts(values);
+    setSelectedProducts(event.target.value as string[]);
   };
 
   const clearFilters = () => {
@@ -146,10 +55,10 @@ const App: React.FC<AppProps> = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const categoryRes = await fetch(
+        const response = await fetch(
           "https://dummyjson.com/products/categories"
         );
-        const data: string[] = await categoryRes.json();
+        const data: string[] = await response.json();
         setCategories(data);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -164,13 +73,10 @@ const App: React.FC<AppProps> = () => {
       if (!selectedCategory) return;
 
       try {
-        const productRes = await fetch(
-          `https://dummyjson.com/products/category/${selectedCategory}`
-        );
-        const data: ProductResponse = await productRes.json();
+        const data = await fetchProductsByCategory(selectedCategory);
         setProducts(data);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error", error);
       }
     };
 
@@ -255,7 +161,7 @@ const App: React.FC<AppProps> = () => {
           <FilterWrapper>
             <div>
               <TitleBar>
-                <h1>Filters</h1>
+                <h2>Filters</h2>
                 <ClearButton onClick={clearFilters}>Clear</ClearButton>
               </TitleBar>
               <FormControl fullWidth>
