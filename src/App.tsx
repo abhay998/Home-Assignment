@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { useTheme } from "@mui/material/styles";
+import React, { useEffect, useState, useCallback } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -26,7 +25,6 @@ import { Checkbox, ListItemText } from "@mui/material";
 interface AppProps {}
 
 const App: React.FC<AppProps> = () => {
-  const theme = useTheme();
   const [categories, setCategories] = useState<string[]>([]);
   const [products, setProducts] = useState<ProductResponse | undefined>();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -34,34 +32,37 @@ const App: React.FC<AppProps> = () => {
   const [selectedXAxisValues, setSelectedXAxisValues] = useState<string[]>([]);
   const [selectedYAxisValues, setSelectedYAxisValues] = useState<number[]>([]);
   const [loader, setLoader] = useState<boolean>(false);
+  const [filtersChanged, setFiltersChanged] = useState<boolean>(false);
 
-  const handleCategoryChange = (event: SelectChangeEvent<string>) => {
-    clearFilters();
-    setSelectedCategory(event.target.value);
-  };
-
-  const handleProductChange = (event: SelectChangeEvent<string[]>) => {
-    setSelectedProducts(event.target.value as string[]);
-  };
-
-  const clearFilters = () => {
-    setProducts(undefined);
-    setSelectedCategory("");
-    setSelectedProducts([]);
-    setSelectedXAxisValues([]);
-    setSelectedYAxisValues([]);
-  };
+  const fetchProductsMemoized = useCallback(
+    async (category: string) => {
+      try {
+        const data = await fetchProductsByCategory(category);
+        return data;
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        return null;
+      }
+    },
+    [fetchProductsByCategory]
+  );
 
   useEffect(() => {
     const fetchCategories = async () => {
-      try {
-        const response = await fetch(
-          "https://dummyjson.com/products/categories"
-        );
-        const data: string[] = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+      const cachedCategories = localStorage.getItem("categories");
+      if (cachedCategories) {
+        setCategories(JSON.parse(cachedCategories));
+      } else {
+        try {
+          const response = await fetch(
+            "https://dummyjson.com/products/categories"
+          );
+          const data = await response.json();
+          setCategories(data);
+          localStorage.setItem("categories", JSON.stringify(data));
+        } catch (error) {
+          console.error("Error fetching categories:", error);
+        }
       }
     };
 
@@ -72,16 +73,39 @@ const App: React.FC<AppProps> = () => {
     const fetchProducts = async () => {
       if (!selectedCategory) return;
 
-      try {
-        const data = await fetchProductsByCategory(selectedCategory);
-        setProducts(data);
-      } catch (error) {
-        console.error("Error", error);
+      const cachedProducts = localStorage.getItem(selectedCategory);
+      if (cachedProducts) {
+        setProducts(JSON.parse(cachedProducts));
+      } else {
+        const data = await fetchProductsMemoized(selectedCategory);
+        if (data) {
+          setProducts(data);
+          localStorage.setItem(selectedCategory, JSON.stringify(data));
+        }
       }
     };
 
     fetchProducts();
-  }, [selectedCategory]);
+  }, [selectedCategory, fetchProductsMemoized]);
+
+  const handleCategoryChange = (event: SelectChangeEvent<string>) => {
+    clearFilters();
+    setSelectedCategory(event.target.value);
+    setFiltersChanged(false);
+  };
+
+  const handleProductChange = (event: SelectChangeEvent<string[]>) => {
+    setSelectedProducts(event.target.value as string[]);
+    setFiltersChanged(false);
+  };
+
+  const clearFilters = () => {
+    setProducts(undefined);
+    setSelectedCategory("");
+    setSelectedProducts([]);
+    setSelectedXAxisValues([]);
+    setSelectedYAxisValues([]);
+  };
 
   const runReport = () => {
     setLoader(true);
@@ -107,6 +131,7 @@ const App: React.FC<AppProps> = () => {
           : products?.products.map((product) => product.price) || []
       );
       setLoader(false);
+      setFiltersChanged(true);
     }, 3000);
     return () => clearTimeout(timer);
   };
@@ -116,7 +141,7 @@ const App: React.FC<AppProps> = () => {
       type: "column",
     },
     title: {
-      text: selectedCategory.length
+      text: selectedXAxisValues?.length
         ? `Products in selected ${selectedCategory}`
         : "",
       align: "left",
@@ -143,13 +168,16 @@ const App: React.FC<AppProps> = () => {
         },
       },
     },
+    legend: {
+      enabled: false,
+    },
     series: [
       {
         type: "column",
         name: "",
         data: selectedYAxisValues.length
           ? selectedYAxisValues
-          : [6, 8, 5, 7, 3],
+          : [600, 800, 500, 700, 300],
       },
     ],
   };
@@ -202,9 +230,9 @@ const App: React.FC<AppProps> = () => {
             </div>
             <ButtonContainer>
               <Button
-                enabled={!!products?.products.length}
+                enabled={!!products?.products.length && !filtersChanged}
                 onClick={runReport}
-                disabled={!products?.products.length}
+                disabled={!products?.products.length || filtersChanged}
               >
                 {loader ? (
                   <CircularProgress size={24} color="inherit" />

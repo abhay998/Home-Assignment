@@ -21,29 +21,45 @@ export const FiltersContainer = styled.div`
 export const Sidebar = styled.div`
   width: 20%;
   padding-right: 20px;
+  border: 1px solid black;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 90%;
+  align-self: center;
 
   @media (max-width: 768px) {
     width: 100%;
     padding-right: 0;
     margin-bottom: 20px;
-  }
-`;
-
-export const FilterWrapper = styled.div`
-  border: 1px solid black;
-  padding: 20px;
-  height: 90%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-
-  @media (max-width: 768px) {
     height: auto;
   }
 `;
 
+export const FilterWrapper = styled.div`
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+`;
+
 export const ButtonContainer = styled.div`
-  margin-top: 20px;
+  margin-top: auto;
+  padding-top: 20px;
+  display: flex;
+  justify-content: center;
+`;
+
+export const Button = styled.button<{ enabled: boolean }>`
+  background-color: ${({ enabled }) => (enabled ? "#316bf4" : "grey")};
+  width: 100%;
+  height: 50px;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: ${({ enabled }) => (enabled ? "pointer" : "not-allowed")};
+  border: none;
+  outline: none;
 `;
 
 export const Content = styled.div`
@@ -70,18 +86,6 @@ export const ClearButton = styled.button`
   padding: 0;
   font: inherit;
   cursor: pointer;
-`;
-
-export const Button = styled.button<{ enabled: boolean }>`
-  background-color: ${({ enabled }) => (enabled ? "#316bf4" : "grey")};
-  width: 100%;
-  height: 50px;
-  color: white;
-  font-weight: bold;
-  border-radius: 5px;
-  cursor: ${({ enabled }) => (enabled ? "pointer" : "not-allowed")};
-  border: none;
-  outline: none;
 `;
 
 export const ChartContainer = styled.div`
